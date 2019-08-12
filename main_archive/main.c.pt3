@@ -1,0 +1,31 @@
+/* Main program. */
+
+#include "main.h"
+
+int main(void) {
+
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
+    
+    GPIOA->MODER &= ~(0x3 << 2*PA5);
+    GPIOA->MODER |= (0x1 << 2*PA5);
+    GPIOA->OTYPER &= ~(0x1 << PA5);
+
+    GPIOC->MODER &= ~(0x3 << 2*PC13);
+    GPIOC->PUPDR &= ~(0x3 << 2*PC13);
+    GPIOC->PUPDR |= (0x1 << 2*PC13);
+
+    uint8_t pressed = 0;
+    while (1) {
+        uint32_t idr_val = ~GPIOC->IDR;
+        if (idr_val & (1 << PC13)) {
+            if (!pressed) {
+                GPIOA->ODR ^= (1 << PA5);
+            }
+            pressed = 1;
+        }
+        else {
+            pressed = 0;
+        }
+    }
+}

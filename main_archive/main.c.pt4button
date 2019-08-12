@@ -1,0 +1,45 @@
+/* Main program. */
+
+#include "main.h"
+
+int main(void) {
+
+    led_on = 0; // initialize global defined in global.h; LED off
+
+    // enable clock for GPIOA, GPIOC, SYSCFG
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOAEN;
+    RCC->AHB1ENR |= RCC_AHB1ENR_GPIOCEN;
+    RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
+    
+    // set PA5 (LED) as output
+    GPIOA->MODER &= ~(0x3 << 2*PA5); // validate reset value
+    GPIOA->MODER |= (0x1 << 2*PA5); // set as output
+    GPIOA->OTYPER &= ~(0x1 << PA5); // set as push-pull output
+    GPIOA->PUPDR &= ~(0x3 << 2*PA5);
+
+    // set PC13 (Switch) as input
+    GPIOC->MODER &= ~(0x3 << 2*PC13); // set as input
+    GPIOC->PUPDR &= ~(0x3 << 2*PC13); // validate reset value
+    GPIOC->PUPDR |= (0x1 << 2*PC13); // enable pull-up
+    
+    //configure interrupts
+    //SYSCFG->EXTICR[(PC13/4)] &= ~(0xF << ((PC13 % 4)*4)); // validate reset
+    //SYSCFG->EXTICR[(PC13/4)] |= (0x2 << ((PC13 % 4)*4)); // EXTI13->portC
+    SYSCFG->EXTICR[3] &= ~(SYSCFG_EXTICR4_EXTI13_Msk);
+    SYSCFG->EXTICR[3] |= SYSCFG_EXTICR4_EXTI13_PC;
+    EXTI->IMR |= (1 << PC13); // enable EXTI13
+    EXTI->RTSR |= (1 << PC13); // disable rising trigger
+    EXTI->FTSR &= ~(1 << PC13); //engage falling trigger
+    NVIC_SetPriority(EXTI15_10_IRQn, 0x01); // set interrupt priority
+    NVIC_EnableIRQ(EXTI15_10_IRQn); // enables interrupt
+
+
+    while (1) {
+        if (led_on) {
+            GPIOA->ODR |= (1 << PA5);
+        }
+        else {
+            GPIOA->ODR &= ~(1 << PA5);
+        }
+    }
+}
